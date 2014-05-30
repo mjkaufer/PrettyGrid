@@ -1,0 +1,154 @@
+<html>
+<head>
+<style>
+	@import url(http://fonts.googleapis.com/css?family=Lato);
+
+	body {
+		background-color: #000000;
+		margin: 0px;
+		overflow: hidden;
+		color:white;
+		font-family: 'Lato', sans-serif;
+
+	}
+</style>
+</head>
+<body style="background-color:#000;">
+		<script src="three.min.js"></script>	
+		<script src="TrackballControls.js"></script>
+
+
+		<script>
+
+			var container, stats;
+			var camera, scene, renderer, group, geometry, line;
+
+			var particles, particles2, particle, count;
+			var material3;
+
+			var mouseX = 0, mouseY = 0;
+			var windowHalfX = window.innerWidth / 2;
+			var windowHalfY = window.innerHeight / 2;
+			var dPoint;
+			var tempArray = new Array();
+
+			for(var x = 0; x < 20; x++){
+				var temp = new THREE.Particle;
+				var tp = temp.position;
+				tp.x = tp.y = tp.z = x * x - 5 * x + 12;
+				tempArray.push(temp);
+			}
+
+
+			init();
+			animate();
+
+
+			function dist(p1, p2){
+				p1 = p1.position;
+				p2 = p2.position;
+				var ret = 0;
+				for(var f in p1)
+					if(f.length == 1)
+						ret+= Math.pow(p1[f] - p2[f], 2);
+
+				return ret;//don't bother square rooting, just comparative
+			}
+			function dSort(a, b){//sorts pA in order of particles nearest to p
+				return dist(a, dPoint) - dist(b, dPoint);
+			}
+			function closestParticles(p, pA, amount){//finds {{amount}} closest particles to {{p}} from {{pA}}
+				dPoint = p;
+				var sortArr = pA = pA.slice(0);//copy of pA
+				var pindex = sortArr.indexOf(p);
+				sortArr.splice(pindex, pindex);//removes original thing from array, if it's there (which it should be)
+				sortArr.sort(dSort);
+				sortArr.splice(amount);//so now sortArr only has {{amount}} elements in it, and they all should be the closest to {{p}}
+				return sortArr;
+			}
+
+
+			function sphereSearch(p, pA){//points in pA, 
+				
+			}
+
+
+			function init() {
+				container = document.createElement( 'div' );
+				document.body.appendChild( container );
+				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 3000 );
+				camera.position.z = 200;
+				controls = new THREE.TrackballControls( camera );				
+				scene = new THREE.Scene();
+				var PI2 = Math.PI * 2;
+				particles = new THREE.Object3D();
+				scene.add( particles );
+				material3 = new THREE.ParticleCanvasMaterial( {
+
+					color: 0xffffff,
+					program: function ( context ) {
+
+						context.beginPath();
+						context.arc( 0, 0, 1, 0, PI2, true );
+						context.fill();
+
+						}
+
+					} );
+
+					// centerp = new THREE.Particle( material3 );
+
+					// centerp.position.x = 0;
+					// centerp.position.y = 0;
+					// centerp.position.z = 0;
+					// centerp.scale.x = centerp.scale.y = Math.random() * 2 + 1;
+					// scene.add( centerp );
+				renderer = new THREE.CanvasRenderer();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				container.appendChild( renderer.domElement );
+				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+				document.addEventListener( 'touchstart', onDocumentTouchStart, false );
+				document.addEventListener( 'touchmove', onDocumentTouchMove, false );
+				window.addEventListener( 'resize', onWindowResize, false );
+			}
+			function onWindowResize() {
+				windowHalfX = window.innerWidth / 2;
+				windowHalfY = window.innerHeight / 2;
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+			}
+			function onDocumentMouseMove( event ) {
+				mouseX = event.clientX - windowHalfX;
+				mouseY = event.clientY - windowHalfY;
+			}
+			function onDocumentTouchStart( event ) {
+				if ( event.touches.length === 1 ) {
+					event.preventDefault();
+					mouseX = event.touches[ 0 ].pageX - windowHalfX;
+					mouseY = event.touches[ 0 ].pageY - windowHalfY;
+				}
+			}
+			function onDocumentTouchMove( event ) {
+
+				if ( event.touches.length === 1 ) {
+					event.preventDefault();
+					mouseX = event.touches[ 0 ].pageX - windowHalfX;
+					mouseY = event.touches[ 0 ].pageY - windowHalfY;
+				}
+			}
+			function animate() {
+				requestAnimationFrame( animate );
+				render();
+			}
+			function render() {
+				camera.lookAt( scene.position );
+				controls.update();
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+
+</body>
+</html>
