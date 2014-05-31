@@ -38,7 +38,7 @@
 			var size = 2.5;
 			var spacing = 100;
 			var amt = 20;
-			// var tempParticle;
+			var colThresh = 5000;
 
 			for(var x = 0; x < 20; x++){
 				var temp = new THREE.Particle;
@@ -182,12 +182,7 @@
 				renderer = new THREE.CanvasRenderer();
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				container.appendChild( renderer.domElement );
-				// var tpm = material3.clone();
-				// tempParticle = new THREE.Particle(tpm);
-				// tempParticle.material.color = new THREE.Color();
-				// tempParticle.scale = new THREE.Vector3(5, 5, 1);
-				// scene.add(tempParticle);
-				// console.log(tempParticle);
+
 
 				for(var x = 0; x < amt; x++){
 					var part = new THREE.Particle(material3.clone());//so we can do individual color stuff
@@ -240,55 +235,44 @@
 
 
 				lines.children = [];
-				if(window.debug)
-				{
-					var vertCopy = particles.children.slice(0);//copy so we don't get current changes mucking stuff up
-					var colThresh = 5000;
 
-					// for(var x = 0; x < particles.children.length; x++){//OLD WAY THAT DID RANDOM SHIT AND DIDN'T WORK TOO WELL
-					// 	var p = particles.children[x];
-					// 	var neighbors = closestParticles(p, vertCopy, neighborAmount);
-					// 	var moveTowards = avgPosition(neighbors);//average position of p's three neighbors
-					// 	if(x==0){
-					// 		tempParticle.position = avgPosition(neighbors);
-					// 		window.mt = moveTowards;
-					// 	}
+				var vertCopy = particles.children.slice(0);//copy so we don't get current changes mucking stuff up
 
-					// 	moveTo(p, moveTowards, moveDist);
-					// 	p.material.color = vectorToColor(p.position, colThresh);
-					// }
+				// for(var x = 0; x < particles.children.length; x++){//OLD WAY THAT DID RANDOM SHIT AND DIDN'T WORK TOO WELL
+				// 	var p = particles.children[x];
+				// 	var neighbors = closestParticles(p, vertCopy, neighborAmount);
+				// 	var moveTowards = avgPosition(neighbors);//average position of p's three neighbors
 
-					for(var x = 0; x < particles.children.length; x++){//now takes the 2 farthest points and the one nearest, averages positions, and moves towards there
-						var p = particles.children[x];
-						var neighbors = farthestParticles(p, vertCopy, neighborAmount+2).concat(new THREE.Particle());//so it moves a bit towards 0
-						var moveTowards = avgPosition(neighbors);//average position of p's three neighbors
-						// if(x==0){
-						// 	tempParticle.position = avgPosition(neighbors);
-						// 	window.mt = moveTowards;
-						// }
+				// 	moveTo(p, moveTowards, moveDist);
+				// 	p.material.color = vectorToColor(p.position, colThresh);
+				// }
 
-						moveTo(p, moveTowards, moveDist);
-						p.material.color = vectorToColor(p.position, colThresh);
-					}					
+				for(var x = 0; x < particles.children.length; x++){//now takes the 2 farthest points and the one nearest, averages positions, and moves towards there
+					var p = particles.children[x];
+					var neighbors = farthestParticles(p, vertCopy, neighborAmount).concat(new THREE.Particle());//so it moves a bit towards 0
+					var moveTowards = avgPosition(neighbors);//average position of p's three neighbors
 
-					for(var x = 0; x < particles.children.length; x++){
-						var p = particles.children[x];
+					moveTo(p, moveTowards, moveDist);
+					p.material.color = vectorToColor(p.position, colThresh);
+				}					
 
-						var neighbors = closestParticles(p, particles.children, neighborAmount);							
-						for(var y = 0; y < neighbors.length; y++){
-						
-							var tempGeo = new THREE.Geometry();
-							tempGeo.vertices.push(p.position);
-							tempGeo.vertices.push(neighbors[y].position);
-							var nmat = lineMat.clone();
-							nmat.color = vectorToColor(avgPos(p.position, neighbors[y].position), colThresh);
-							var line = new THREE.Line(tempGeo, nmat);
-							lines.add(line);
-						}		
-					}
-			
+				for(var x = 0; x < particles.children.length; x++){
+					var p = particles.children[x];
+
+					var neighbors = closestParticles(p, particles.children, neighborAmount);							
+					for(var y = 0; y < neighbors.length; y++){
+					
+						var tempGeo = new THREE.Geometry();
+						tempGeo.vertices.push(p.position);
+						tempGeo.vertices.push(neighbors[y].position);
+						var nmat = lineMat.clone();
+						nmat.color = vectorToColor(avgPos(p.position, neighbors[y].position), colThresh);
+						var line = new THREE.Line(tempGeo, nmat);
+						lines.add(line);
+					}		
 				}
-				particles.rotation.y = lines.rotation.y+=Math.PI / 8096;
+		
+				particles.rotation.y = lines.rotation.y+=Math.PI / 4096;
 				count++;
 				renderer.render( scene, camera );
 
