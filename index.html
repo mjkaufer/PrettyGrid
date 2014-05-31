@@ -23,41 +23,42 @@
 			var container, stats;
 			var camera, scene, renderer, group, geometry, line;
 
-			var particles, particles2, particle, count;
-			var material3;
+			var particles, lines;
+			var material3, lineMat;
 
 			var mouseX = 0, mouseY = 0;
 			var windowHalfX = window.innerWidth / 2;
 			var windowHalfY = window.innerHeight / 2;
 			var dPoint;
 			var tempArray = new Array();
+			var c = ['x', 'y', 'z'];
+			var count = 0;
 
 			for(var x = 0; x < 20; x++){
 				var temp = new THREE.Particle;
 				var tp = temp.position;
-				tp.x = tp.y = tp.z = x * x - 5 * x + 12;
+				tp.x = tp.y = tp.z = x;
 				tempArray.push(temp);
 			}
 
-
+			//z is depth, so it should be constant
 			init();
 			animate();
 
-
+			function avgPosition(pA){//finds the average position of particles in a Vector3, useful to find where the particle will be moving
+				var retPos = new THREE.Vector3();
+				for(var i = 0; i < pA.length; i++)
+					retPos.add(pA[i].position);
+				retPos.divideScalar(pA.length);
+				return retPos;
+			}
 			function dist(p1, p2){
-				p1 = p1.position;
-				p2 = p2.position;
-				var ret = 0;
-				for(var f in p1)
-					if(f.length == 1)
-						ret+= Math.pow(p1[f] - p2[f], 2);
-
-				return ret;//don't bother square rooting, just comparative
+				return p1.position.distanceToSquared(p2.position);//no square root, saves time
 			}
 			function dSort(a, b){//sorts pA in order of particles nearest to p
 				return dist(a, dPoint) - dist(b, dPoint);
 			}
-			function closestParticles(p, pA, amount){//finds {{amount}} closest particles to {{p}} from {{pA}}
+			function closestParticles(p, pA, amount){//finds {{amount}} closest particles to {{p}} from {{pA}}, returned in an array
 				dPoint = p;
 				var sortArr = pA = pA.slice(0);//copy of pA
 				var pindex = sortArr.indexOf(p);
@@ -66,13 +67,23 @@
 				sortArr.splice(amount);//so now sortArr only has {{amount}} elements in it, and they all should be the closest to {{p}}
 				return sortArr;
 			}
+			function moveTo(p, v, max){//moves particle p towards vector3 v by max units
+				if(count == 0)
+					console.log(v)
 
+				v.multiplyScalar(max / v.distanceTo(new THREE.Vector3())); //new vector has a pos of 0,0,0, so the magnitude of the direction vector is now shrunken
 
-			function sphereSearch(p, pA){//points in pA, 
-				
+				if(count == 0)
+					console.log(v);
+				//now we add v to p so it moves thataway
+				if(count == 0)
+					console.log(p.position);
+
+				p.position.add(v);//now p has moved!
+				if(count == 0)
+					console.log(p.position);
+				count++;
 			}
-
-
 			function init() {
 				container = document.createElement( 'div' );
 				document.body.appendChild( container );
@@ -82,30 +93,38 @@
 				scene = new THREE.Scene();
 				var PI2 = Math.PI * 2;
 				particles = new THREE.Object3D();
+				lines = new THREE.Object3D();
 				scene.add( particles );
+				scene.add( lines );
 				material3 = new THREE.ParticleCanvasMaterial( {
-
-					color: 0xffffff,
+					color: 0x20F050,
 					program: function ( context ) {
-
 						context.beginPath();
 						context.arc( 0, 0, 1, 0, PI2, true );
 						context.fill();
-
-						}
-
-					} );
-
-					// centerp = new THREE.Particle( material3 );
-
-					// centerp.position.x = 0;
-					// centerp.position.y = 0;
-					// centerp.position.z = 0;
-					// centerp.scale.x = centerp.scale.y = Math.random() * 2 + 1;
-					// scene.add( centerp );
+					}
+				} );
+				lineMat = new THREE.LineBasicMaterial({
+					color: 0x20FF60
+				});
 				renderer = new THREE.CanvasRenderer();
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				container.appendChild( renderer.domElement );
+
+				var size = 2.5;
+				var spacing = 100;
+				var amt = 20;
+
+				for(var x = 0; x < amt; x++){
+					var part = new THREE.Particle(material3);
+					part.scale.x = part.scale.y = size;
+					part.position.x = Math.random() * spacing - spacing / 2.0;
+					part.position.y = Math.random() * spacing - spacing / 2.0;
+					part.position.z = Math.random() * spacing - spacing / 2.0;					
+					particles.add(part);
+				}
+
+
 				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 				document.addEventListener( 'touchstart', onDocumentTouchStart, false );
 				document.addEventListener( 'touchmove', onDocumentTouchMove, false );
@@ -144,6 +163,31 @@
 			function render() {
 				camera.lookAt( scene.position );
 				controls.update();
+
+
+				lines.children = [];
+				if(window.debug)
+				for(var x = 0; x < particles.children.length; x++){
+					var p = particles.children[x];
+					var neighborAmount = 3;
+					var neighbors = closestParticles(p, particles.children, neighborAmount);
+					if(count == 0)
+					console.log(neighbors);
+					var moveTowards = avgPosition(neighbors);//average position of p's three neighbors
+					if(count == 0){
+					console.log(moveTowards);
+					console.log("MOVE TOWARDS");}
+					var moveDist = 0.1;
+					moveTo(p, moveTowards, moveDist);
+					for(var y = 0; y < neighbors.length; y++){
+						var tempGeo = new THREE.Geometry();
+						tempGeo.vertices.push(p.position);
+						tempGeo.vertices.push(neighbors[y].position);
+						var line = new THREE.Line(tempGeo, lineMat);
+						lines.add(line);
+					}
+				}
+
 				renderer.render( scene, camera );
 
 			}
