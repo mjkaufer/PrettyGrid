@@ -38,6 +38,7 @@
 			var size = 2.5;
 			var spacing = 100;
 			var amt = 20;
+			// var tempParticle;
 
 			for(var x = 0; x < 20; x++){
 				var temp = new THREE.Particle;
@@ -67,6 +68,9 @@
 			function dSort(a, b){//sorts pA in order of particles nearest to p
 				return dist(a, dPoint) - dist(b, dPoint);
 			}
+			function reverseDSort(a, b){//sorts pA in order of particles nearest to p
+				return dist(b, dPoint) - dist(a, dPoint);
+			}			
 			function closestParticles(p, pA, amount){//finds {{amount}} closest particles to {{p}} from {{pA}}, returned in an array
 				dPoint = p;
 				var sortArr = pA = pA.slice(0);//copy of pA
@@ -76,12 +80,48 @@
 				sortArr.splice(amount);//so now sortArr only has {{amount}} elements in it, and they all should be the closest to {{p}}
 				return sortArr;
 			}
-			function moveTo(p, v, max){//moves particle p towards vector3 v by max units
+
+			function farthestParticles(p, pA, amount){//finds {{amount}} FARTHEST particles to {{p}} from {{pA}}, returned in an array
+				dPoint = p;
+				var sortArr = pA = pA.slice(0);//copy of pA
+				var pindex = sortArr.indexOf(p);
+				sortArr.splice(pindex, pindex);//removes original thing from array, if it's there (which it should be)
+				sortArr.sort(reverseDSort);
+				sortArr.splice(amount);//so now sortArr only has {{amount}} elements in it, and they all should be the closest to {{p}}
+				return sortArr;
+			}		
+
+			function nFMixParticles(p, pA, amount){//finds amount-1 farthest and 1 closest
+				dPoint = p;
+				var sortArr = pA = pA.slice(0);//copy of pA
+				var pindex = sortArr.indexOf(p);
+				sortArr.splice(pindex, pindex);//removes original thing from array, if it's there (which it should be)
+				sortArr.sort(reverseDSort);
+				var closest = sortArr[sortArr.length-1];//the closest point to p
+				sortArr.splice(amount);//so now sortArr only has {{amount}} elements in it, and they all should be the closest to {{p}}
+				return sortArr.concat(closest);//so it floats towards 0 a bit as well
+			}				
+			// function moveTo(p, ve, max){//moves particle p towards vector3 v by max units
+
+			// 	var scaleThing = Math.log(parseInt(p.uuid.split("-")[0], 16)) * 20;//a way of implementing a dynamic switch from positive to negative because math hates me
+			// 	while(scaleThing < 100)
+			// 		scaleThing *= 1.25;//so it's not too small
+			// 	var v = ve.clone();
+			// 	var mag = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+			// 	v.multiplyScalar(max / mag);
+			// 	var sign = count % scaleThing < scaleThing / 2.0 ? -1 : 1;
+			// 	v.multiplyScalar(sign);
+
+			// 	p.position.add(v);//now p has moved!
+
+			// }
+
+			function moveTo(p, ve, max){//moves particle p towards vector3 v by max units
 
 				var scaleThing = Math.log(parseInt(p.uuid.split("-")[0], 16)) * 20;//a way of implementing a dynamic switch from positive to negative because math hates me
 				while(scaleThing < 100)
 					scaleThing *= 1.25;//so it's not too small
-
+				var v = ve.clone();
 				var mag = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 				v.multiplyScalar(max / mag);
 				var sign = count % scaleThing < scaleThing / 2.0 ? -1 : 1;
@@ -89,7 +129,7 @@
 
 				p.position.add(v);//now p has moved!
 
-			}
+			}			
 
 			// function vectorToColor(v, m){//v is vector, m is what we'll mod/divide by
 
@@ -142,8 +182,12 @@
 				renderer = new THREE.CanvasRenderer();
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				container.appendChild( renderer.domElement );
-
-
+				// var tpm = material3.clone();
+				// tempParticle = new THREE.Particle(tpm);
+				// tempParticle.material.color = new THREE.Color();
+				// tempParticle.scale = new THREE.Vector3(5, 5, 1);
+				// scene.add(tempParticle);
+				// console.log(tempParticle);
 
 				for(var x = 0; x < amt; x++){
 					var part = new THREE.Particle(material3.clone());//so we can do individual color stuff
@@ -201,13 +245,31 @@
 					var vertCopy = particles.children.slice(0);//copy so we don't get current changes mucking stuff up
 					var colThresh = 5000;
 
-					for(var x = 0; x < particles.children.length; x++){
+					// for(var x = 0; x < particles.children.length; x++){//OLD WAY THAT DID RANDOM SHIT AND DIDN'T WORK TOO WELL
+					// 	var p = particles.children[x];
+					// 	var neighbors = closestParticles(p, vertCopy, neighborAmount);
+					// 	var moveTowards = avgPosition(neighbors);//average position of p's three neighbors
+					// 	if(x==0){
+					// 		tempParticle.position = avgPosition(neighbors);
+					// 		window.mt = moveTowards;
+					// 	}
+
+					// 	moveTo(p, moveTowards, moveDist);
+					// 	p.material.color = vectorToColor(p.position, colThresh);
+					// }
+
+					for(var x = 0; x < particles.children.length; x++){//now takes the 2 farthest points and the one nearest, averages positions, and moves towards there
 						var p = particles.children[x];
-						var neighbors = closestParticles(p, vertCopy, neighborAmount);
+						var neighbors = farthestParticles(p, vertCopy, neighborAmount+2).concat(new THREE.Particle());//so it moves a bit towards 0
 						var moveTowards = avgPosition(neighbors);//average position of p's three neighbors
+						// if(x==0){
+						// 	tempParticle.position = avgPosition(neighbors);
+						// 	window.mt = moveTowards;
+						// }
+
 						moveTo(p, moveTowards, moveDist);
 						p.material.color = vectorToColor(p.position, colThresh);
-					}
+					}					
 
 					for(var x = 0; x < particles.children.length; x++){
 						var p = particles.children[x];
@@ -226,7 +288,7 @@
 					}
 			
 				}
-
+				particles.rotation.y = lines.rotation.y+=Math.PI / 8096;
 				count++;
 				renderer.render( scene, camera );
 
