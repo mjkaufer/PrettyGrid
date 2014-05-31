@@ -58,6 +58,9 @@
 				retPos.divideScalar(pA.length/* * randPos*/);//only way I can make sure it doesn't stay floating towards the goddamn middle
 				return retPos;
 			}
+			function avgPos(v1, v2){//avg pos of 2 vectors, as opposed to specifically particles in an array or what have you
+				return new THREE.Vector3().add(v1).add(v2).divideScalar(2.0);
+			}
 			function dist(p1, p2){
 				return p1.position.distanceToSquared(p2.position);//no square root, saves time
 			}
@@ -74,8 +77,6 @@
 				return sortArr;
 			}
 			function moveTo(p, v, max){//moves particle p towards vector3 v by max units
-				if(count == 0)
-					console.log(v)
 
 				var scaleThing = Math.log(parseInt(p.uuid.split("-")[0], 16)) * 20;//a way of implementing a dynamic switch from positive to negative because math hates me
 				while(scaleThing < 100)
@@ -85,7 +86,6 @@
 				v.multiplyScalar(max / mag);
 				var sign = count % scaleThing < scaleThing / 2.0 ? -1 : 1;
 				v.multiplyScalar(sign);
-
 
 				p.position.add(v);//now p has moved!
 
@@ -199,14 +199,14 @@
 				if(window.debug)
 				{
 					var vertCopy = particles.children.slice(0);//copy so we don't get current changes mucking stuff up
-
+					var colThresh = 5000;
 
 					for(var x = 0; x < particles.children.length; x++){
 						var p = particles.children[x];
 						var neighbors = closestParticles(p, vertCopy, neighborAmount);
 						var moveTowards = avgPosition(neighbors);//average position of p's three neighbors
 						moveTo(p, moveTowards, moveDist);
-						p.material.color = vectorToColor(p.position, 5000);
+						p.material.color = vectorToColor(p.position, colThresh);
 					}
 
 					for(var x = 0; x < particles.children.length; x++){
@@ -218,7 +218,9 @@
 							var tempGeo = new THREE.Geometry();
 							tempGeo.vertices.push(p.position);
 							tempGeo.vertices.push(neighbors[y].position);
-							var line = new THREE.Line(tempGeo, lineMat);
+							var nmat = lineMat.clone();
+							nmat.color = vectorToColor(avgPos(p.position, neighbors[y].position), colThresh);
+							var line = new THREE.Line(tempGeo, nmat);
 							lines.add(line);
 						}		
 					}
