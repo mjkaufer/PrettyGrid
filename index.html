@@ -39,6 +39,9 @@
 			var spacing = 100;
 			var amt = 75;
 			var colThresh = 5000;
+			var maxDist = 500;
+			var zeroVector = new THREE.Vector3();
+			var zeroParticle = new THREE.Particle();
 
 			for(var x = 0; x < 20; x++){
 				var temp = new THREE.Particle;
@@ -91,14 +94,17 @@
 				return sortArr;
 			}		
 
-			function nFMixParticles(p, pA, amount){//finds amount-1 farthest and 1 closest
+			function nFMixParticles(p, pA, amountFar, amountNear){//finds amount-1 farthest and 1 closest
 				dPoint = p;
 				var sortArr = pA = pA.slice(0);//copy of pA
 				var pindex = sortArr.indexOf(p);
 				sortArr.splice(pindex, pindex);//removes original thing from array, if it's there (which it should be)
 				sortArr.sort(reverseDSort);
-				var closest = sortArr[sortArr.length-1];//the closest point to p
-				sortArr.splice(amount);//so now sortArr only has {{amount}} elements in it, and they all should be the closest to {{p}}
+				var closest = sortArr.slice(sortArr.length - amountNear);//the closest point to p
+				sortArr.splice(amountFar);//so now sortArr only has {{amount}} elements in it, and they all should be the closest to {{p}}
+
+				if(dist(p, zeroParticle) > maxDist)
+					closest.concat(arrayOf(zeroParticle, 10));//so it moves closer to 0 / away from farthest hopefully
 				return sortArr.concat(closest);//so it floats towards 0 a bit as well
 			}				
 			// function moveTo(p, ve, max){//moves particle p towards vector3 v by max units
@@ -124,8 +130,8 @@
 				var v = ve.clone();
 				var mag = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 				v.multiplyScalar(max / mag);
-				var sign = count % scaleThing < scaleThing / 2.0 ? -1 : 1;
-				v.multiplyScalar(sign);
+				// var sign = count % scaleThing < scaleThing / 2.0 ? -1 : 1;
+				// v.multiplyScalar(sign);
 
 				p.position.add(v);//now p has moved!
 
@@ -146,11 +152,8 @@
 
 			function vectorToColor(v, m){//v is vector, m is what we'll mod/divide by
 
-				var mag = 0;
+				var mag = v.distanceToSquared(zeroVector);
 				
-				for(var f in c)
-					mag+= Math.pow(v[c[f]],2);
-
 				var h = mag % m / m;
 
 				return new THREE.Color().setHSL(h, 0.5, 0.5);
@@ -229,6 +232,12 @@
 				requestAnimationFrame( animate );
 				render();
 			}
+			function arrayOf(x, times){
+				var ret = new Array();
+				for(var f = 0; f < times; f++)
+					ret = ret.concat(x);
+				return ret;
+			}
 			function render() {
 				camera.lookAt( scene.position );
 				controls.update();
@@ -249,10 +258,10 @@
 
 				for(var x = 0; x < particles.children.length; x++){//now takes the 2 farthest points and the one nearest, averages positions, and moves towards there
 					var p = particles.children[x];
-					var neighbors = farthestParticles(p, vertCopy, neighborAmount).concat(new THREE.Particle());//so it moves a bit towards 0
-					var moveTowards = avgPosition(neighbors);//average position of p's three neighbors
+					var neighbors = nFMixParticles(p, vertCopy, 2, 2).concat(arrayOf(zeroParticle, 50));//so it moves a bit towards 0
+					var moveTowards = avgPosition(neighbors);//average position of p's neighbors
 
-					moveTo(p, moveTowards, moveDist);
+					moveTo(p, moveTowards, moveDist*2);
 					p.material.color = vectorToColor(p.position, colThresh);
 				}					
 
