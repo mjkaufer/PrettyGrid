@@ -1,29 +1,21 @@
-			var container, stats;
-			var camera, scene, renderer, group, geometry, line;
+			var container;
+			var camera, scene, renderer;
 			var particles, lines;
 			var material3, lineMat;
 			var mouseX = 0, mouseY = 0;
 			var windowHalfX = window.innerWidth / 2;
 			var windowHalfY = window.innerHeight / 2;
 			var dPoint;
-			var tempArray = new Array();
 			var c = ['x', 'y', 'z'];
 			var count = 0;
-			var moveDist = 0.2;
 			var neighborAmount = 3;
 			var size = 2.5;
 			var spacing = 100;
 			var amt = 75;
 			var colThresh = 5000;
-			var maxDist = 50;
 			var zeroVector = new THREE.Vector3();
 			var zeroParticle = new THREE.Particle();
-			for(var x = 0; x < 20; x++){
-				var temp = new THREE.Particle;
-				var tp = temp.position;
-				tp.x = tp.y = tp.z = x;
-				tempArray.push(temp);
-			}
+			var inc = 1;
 			init();
 			animate();
 			function avgPos(v1, v2){
@@ -189,6 +181,6 @@
 						lines.children.push(new THREE.Line(tempGeo, nmat))
 					}
 				}
-				count++;
+				count+= inc;
 				renderer.render( scene, camera );
 			}
