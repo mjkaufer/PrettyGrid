@@ -33,6 +33,11 @@
 			var tempArray = new Array();
 			var c = ['x', 'y', 'z'];
 			var count = 0;
+			var moveDist = 0.1;
+			var neighborAmount = 3;			
+			var size = 2.5;
+			var spacing = 100;
+			var amt = 20;
 
 			for(var x = 0; x < 20; x++){
 				var temp = new THREE.Particle;
@@ -85,6 +90,32 @@
 				p.position.add(v);//now p has moved!
 
 			}
+
+			// function vectorToColor(v, m){//v is vector, m is what we'll mod/divide by
+
+			// 	var rgb = [0,0,0];
+			// 	for(var f in c){
+			// 		var col = (Math.abs(v[c[f]]) % 50 / 50);//can't have negative colors
+			// 		if(col < 0.1)//too dark
+			// 			col = 1 - col;
+			// 		rgb[f] = col;
+			// 	}
+
+			// 	return new THREE.Color().setRGB(rgb[0], rgb[1], rgb[2]);
+			// }
+
+			function vectorToColor(v, m){//v is vector, m is what we'll mod/divide by
+
+				var mag = 0;
+				
+				for(var f in c)
+					mag+= Math.pow(v[c[f]],2);
+
+				var h = mag % m / m;
+
+				return new THREE.Color().setHSL(h, 0.5, 0.5);
+			}			
+
 			function init() {
 				container = document.createElement( 'div' );
 				document.body.appendChild( container );
@@ -112,12 +143,10 @@
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				container.appendChild( renderer.domElement );
 
-				var size = 2.5;
-				var spacing = 100;
-				var amt = 20;
+
 
 				for(var x = 0; x < amt; x++){
-					var part = new THREE.Particle(material3);
+					var part = new THREE.Particle(material3.clone());//so we can do individual color stuff
 					part.scale.x = part.scale.y = size;
 					part.position.x = Math.random() * spacing - spacing / 2.0;
 					part.position.y = Math.random() * spacing - spacing / 2.0;
@@ -170,14 +199,14 @@
 				if(window.debug)
 				{
 					var vertCopy = particles.children.slice(0);//copy so we don't get current changes mucking stuff up
-					var moveDist = 0.1;
-					var neighborAmount = 3;
+
 
 					for(var x = 0; x < particles.children.length; x++){
 						var p = particles.children[x];
 						var neighbors = closestParticles(p, vertCopy, neighborAmount);
 						var moveTowards = avgPosition(neighbors);//average position of p's three neighbors
 						moveTo(p, moveTowards, moveDist);
+						p.material.color = vectorToColor(p.position, 5000);
 					}
 
 					for(var x = 0; x < particles.children.length; x++){
