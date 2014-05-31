@@ -2,292 +2,32 @@
 <head>
 <style>
 	@import url(http://fonts.googleapis.com/css?family=Lato);
-
 	body {
 		background-color: #000000;
 		margin: 0px;
 		overflow: hidden;
 		color:white;
 		font-family: 'Lato', sans-serif;
-
 	}
 </style>
 </head>
 <body style="background-color:#000;">
-		<script src="three.min.js"></script>	
+
+		<script src="three.min.js"></script>
 		<script src="TrackballControls.js"></script>
 
 
-		<script>
 
-			var container, stats;
-			var camera, scene, renderer, group, geometry, line;
+		<label>Particles</label>
+		<input type="checkbox" onclick="pToggle();">
+		<label>Hue Range</label>
+		<input type="range" name="hr" id="hr" value="3" min="1" max="4.5" step="0.05" onchange="colThresh = 5 * Math.pow(10, this.value);" onmousemove="this.onchange()">
+		<label>Vertex Count</label>
+		<input type="range" name="pr" id="pr" value="75" min="1" max="100" step="1" onchange="setParticles(this.value);" onmousemove="this.onchange()">
+		<label>Speed</label>
+		<input type="range" name="sr" id="sr" value="0" min="-2" max="2" step="0.01" onchange="inc = Math.pow(10, this.value)" onmousemove="this.onchange()">		
 
-			var particles, lines;
-			var material3, lineMat;
-
-			var mouseX = 0, mouseY = 0;
-			var windowHalfX = window.innerWidth / 2;
-			var windowHalfY = window.innerHeight / 2;
-			var dPoint;
-			var tempArray = new Array();
-			var c = ['x', 'y', 'z'];
-			var count = 0;
-			var moveDist = 0.2;
-			var neighborAmount = 3;			
-			var size = 2.5;
-			var spacing = 100;
-			var amt = 75;
-			var colThresh = 5000;
-			var maxDist = 50;
-			var zeroVector = new THREE.Vector3();
-			var zeroParticle = new THREE.Particle();
-
-			for(var x = 0; x < 20; x++){
-				var temp = new THREE.Particle;
-				var tp = temp.position;
-				tp.x = tp.y = tp.z = x;
-				tempArray.push(temp);
-			}
-
-			//z is depth, so it should be constant
-			init();
-			animate();
-
-			function avgPosition(pA){//finds the average position of particles in a Vector3, useful to find where the particle will be moving
-				var retPos = new THREE.Vector3();
-				for(var i = 0; i < pA.length; i++)
-					retPos.add(pA[i].position);
-				// var randPos = parseInt(Math.round(Math.random()) * 2 - 1);//either a positive or a negative
-				return retPos.divideScalar(pA.length);//only way I can make sure it doesn't stay floating towards the goddamn middle
-			}
-			function avgPos(v1, v2){//avg pos of 2 vectors, as opposed to specifically particles in an array or what have you
-				return new THREE.Vector3().add(v1).add(v2).divideScalar(2.0);
-			}
-			function dist(p1, p2){
-				return p1.position.distanceToSquared(p2.position);//no square root, saves time
-			}
-			function dSort(a, b){//sorts pA in order of particles nearest to p
-				return dist(a, dPoint) - dist(b, dPoint);
-			}
-			function reverseDSort(a, b){//sorts pA in order of particles nearest to p
-				return dist(b, dPoint) - dist(a, dPoint);
-			}			
-			function closestParticles(p, pA, amount){//finds {{amount}} closest particles to {{p}} from {{pA}}, returned in an array
-				dPoint = p;
-				var sortArr = pA = pA.slice(0);//copy of pA
-				var pindex = sortArr.indexOf(p);
-				sortArr.splice(pindex, pindex);//removes original thing from array, if it's there (which it should be)
-				sortArr.sort(dSort);
-				sortArr.splice(amount);//so now sortArr only has {{amount}} elements in it, and they all should be the closest to {{p}}
-				return sortArr;
-			}
-
-			function farthestParticles(p, pA, amount){//finds {{amount}} FARTHEST particles to {{p}} from {{pA}}, returned in an array
-				dPoint = p;
-				var sortArr = pA = pA.slice(0);//copy of pA
-				var pindex = sortArr.indexOf(p);
-				sortArr.splice(pindex, pindex);//removes original thing from array, if it's there (which it should be)
-				sortArr.sort(reverseDSort);
-				sortArr.splice(amount);//so now sortArr only has {{amount}} elements in it, and they all should be the closest to {{p}}
-				return sortArr;
-			}		
-
-			function nFMixParticles(p, pA, amountFar, amountNear){//finds amount-1 farthest and 1 closest
-				dPoint = p;
-				var sortArr = pA = pA.slice(0);//copy of pA
-				var pindex = sortArr.indexOf(p);
-				sortArr.splice(pindex, pindex);//removes original thing from array, if it's there (which it should be)
-				sortArr.sort(reverseDSort);
-				var closest = sortArr.slice(sortArr.length - amountNear);//the closest point to p
-				sortArr.splice(amountFar);//so now sortArr only has {{amount}} elements in it, and they all should be the closest to {{p}}
-
-				// if(dist(p, zeroParticle) > maxDist)
-				// 	closest.concat(arrayOf(zeroParticle, 10));//so it moves closer to 0 / away from farthest hopefully
-				return sortArr.concat(closest);//so it floats towards 0 a bit as well
-			}				
-			// function moveTo(p, ve, max){//moves particle p towards vector3 v by max units
-
-			// 	var scaleThing = Math.log(parseInt(p.uuid.split("-")[0], 16)) * 20;//a way of implementing a dynamic switch from positive to negative because math hates me
-			// 	while(scaleThing < 100)
-			// 		scaleThing *= 1.25;//so it's not too small
-			// 	var v = ve.clone();
-			// 	var mag = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-			// 	v.multiplyScalar(max / mag);
-			// 	var sign = count % scaleThing < scaleThing / 2.0 ? -1 : 1;
-			// 	v.multiplyScalar(sign);
-
-			// 	p.position.add(v);//now p has moved!
-
-			// }
-
-			function moveTo(p, ve, max){//moves particle p towards vector3 v by max units
-
-				var scaleThing = parseInt(p.uuid.split("-")[0].substring(0,2), 16) * 20;//a way of implementing a dynamic switch from positive to negative because math hates me
-				var scaleThing2 = parseInt(p.uuid.split("-")[1].substring(0,2), 16) * 20;
-
-				var v = ve.clone().sub(p.clone().position);
-
-				v.multiplyScalar(max / v.distanceTo(zeroVector));
-				var sign = count % scaleThing < scaleThing / 2.0 ? -1 : 1;
-				v.multiplyScalar(sign);
-
-				window.last = v;
-				p.position.add(v);//now p has moved!
-
-			}			
-
-			// function vectorToColor(v, m){//v is vector, m is what we'll mod/divide by
-
-			// 	var rgb = [0,0,0];
-			// 	for(var f in c){
-			// 		var col = (Math.abs(v[c[f]]) % 50 / 50);//can't have negative colors
-			// 		if(col < 0.1)//too dark
-			// 			col = 1 - col;
-			// 		rgb[f] = col;
-			// 	}
-
-			// 	return new THREE.Color().setRGB(rgb[0], rgb[1], rgb[2]);
-			// }
-
-			function vectorToColor(v, m){//v is vector, m is what we'll mod/divide by
-
-				var mag = v.distanceToSquared(zeroVector);
-				
-				var h = mag % m / m;
-
-				return new THREE.Color().setHSL(h, 0.5, 0.5);
-			}			
-
-			function init() {
-				container = document.createElement( 'div' );
-				document.body.appendChild( container );
-				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 3000 );
-				camera.position.z = 200;
-				controls = new THREE.TrackballControls( camera );				
-				scene = new THREE.Scene();
-				var PI2 = Math.PI * 2;
-				particles = new THREE.Object3D();
-				lines = new THREE.Object3D();
-				scene.add( particles );
-				scene.add( lines );
-				material3 = new THREE.ParticleCanvasMaterial( {
-					color: 0x20F050,
-					program: function ( context ) {
-						context.beginPath();
-						context.arc( 0, 0, 1, 0, PI2, true );
-						context.fill();
-					}
-				} );
-				lineMat = new THREE.LineBasicMaterial({
-					color: 0x20FF60
-				});
-				renderer = new THREE.CanvasRenderer();
-				renderer.setSize( window.innerWidth, window.innerHeight );
-				container.appendChild( renderer.domElement );
-
-
-				for(var x = 0; x < amt; x++){
-					var part = new THREE.Particle(material3.clone());//so we can do individual color stuff
-					part.scale.x = part.scale.y = size;
-					part.position.x = Math.random() * spacing - spacing / 2.0;
-					part.position.y = Math.random() * spacing - spacing / 2.0;
-					part.position.z = Math.random() * spacing - spacing / 2.0;					
-					particles.add(part);
-				}
-
-
-				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
-				document.addEventListener( 'touchstart', onDocumentTouchStart, false );
-				document.addEventListener( 'touchmove', onDocumentTouchMove, false );
-				window.addEventListener( 'resize', onWindowResize, false );
-			}
-			function onWindowResize() {
-				windowHalfX = window.innerWidth / 2;
-				windowHalfY = window.innerHeight / 2;
-				camera.aspect = window.innerWidth / window.innerHeight;
-				camera.updateProjectionMatrix();
-				renderer.setSize( window.innerWidth, window.innerHeight );
-			}
-			function onDocumentMouseMove( event ) {
-				mouseX = event.clientX - windowHalfX;
-				mouseY = event.clientY - windowHalfY;
-			}
-			function onDocumentTouchStart( event ) {
-				if ( event.touches.length === 1 ) {
-					event.preventDefault();
-					mouseX = event.touches[ 0 ].pageX - windowHalfX;
-					mouseY = event.touches[ 0 ].pageY - windowHalfY;
-				}
-			}
-			function onDocumentTouchMove( event ) {
-
-				if ( event.touches.length === 1 ) {
-					event.preventDefault();
-					mouseX = event.touches[ 0 ].pageX - windowHalfX;
-					mouseY = event.touches[ 0 ].pageY - windowHalfY;
-				}
-			}
-			function animate() {
-				requestAnimationFrame( animate );
-				render();
-			}
-			function arrayOf(x, times){
-				var ret = new Array();
-				for(var f = 0; f < times; f++)
-					ret = ret.concat(x);
-				return ret;
-			}
-			function render() {
-				camera.lookAt( scene.position );
-				controls.update();
-
-
-				lines.children = [];
-
-				var vertCopy = particles.children.slice(0);//copy so we don't get current changes mucking stuff up
-
-				// for(var x = 0; x < particles.children.length; x++){//OLD WAY THAT DID RANDOM SHIT AND DIDN'T WORK TOO WELL
-				// 	var p = particles.children[x];
-				// 	var neighbors = closestParticles(p, vertCopy, neighborAmount);
-				// 	var moveTowards = avgPosition(neighbors);//average position of p's three neighbors
-
-				// 	moveTo(p, moveTowards, moveDist);
-				// 	p.material.color = vectorToColor(p.position, colThresh);
-				// }
-
-				for(var x = 0; x < particles.children.length; x++){//now takes the 2 farthest points and the one nearest, averages positions, and moves towards there
-					var p = particles.children[x];
-					var neighbors = nFMixParticles(p, vertCopy, 2, 0)
-					var moveTowards = avgPosition(neighbors);//average position of p's neighbors
-
-					moveTo(p, moveTowards, moveDist);
-					p.material.color = vectorToColor(p.position, colThresh);
-				}					
-
-				for(var x = 0; x < particles.children.length; x++){
-					var p = particles.children[x];
-
-					var neighbors = closestParticles(p, particles.children, neighborAmount);							
-					for(var y = 0; y < neighbors.length; y++){
-					
-						var tempGeo = new THREE.Geometry();
-						tempGeo.vertices.push(p.position);
-						tempGeo.vertices.push(neighbors[y].position);
-						var nmat = lineMat.clone();
-						nmat.color = vectorToColor(avgPos(p.position, neighbors[y].position), colThresh);
-						var line = new THREE.Line(tempGeo, nmat);
-						lines.add(line);
-					}		
-				}
-		
-				particles.rotation.y = lines.rotation.y+=Math.PI / 4096;
-				count++;
-				renderer.render( scene, camera );
-
-			}
-
-		</script>
+		<script src="sbs.js"></script>
 
 </body>
 </html>
