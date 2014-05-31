@@ -1,21 +1,30 @@
-			var container;
-			var camera, scene, renderer;
+			var container, stats;
+			var camera, scene, renderer, group, geometry, line;
 			var particles, lines;
 			var material3, lineMat;
 			var mouseX = 0, mouseY = 0;
 			var windowHalfX = window.innerWidth / 2;
 			var windowHalfY = window.innerHeight / 2;
 			var dPoint;
+			var tempArray = new Array();
 			var c = ['x', 'y', 'z'];
 			var count = 0;
+			var moveDist = 0.2;
 			var neighborAmount = 3;
 			var size = 2.5;
 			var spacing = 100;
 			var amt = 75;
 			var colThresh = 5000;
+			var maxDist = 50;
 			var zeroVector = new THREE.Vector3();
 			var zeroParticle = new THREE.Particle();
 			var inc = 1;
+			for(var x = 0; x < 20; x++){
+				var temp = new THREE.Particle;
+				var tp = temp.position;
+				tp.x = tp.y = tp.z = x;
+				tempArray.push(temp);
+			}
 			init();
 			animate();
 			function avgPos(v1, v2){
@@ -96,7 +105,6 @@
 				document.body.appendChild( container );
 				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 3000 );
 				camera.position.z = 200;
-				controls = new THREE.TrackballControls( camera, container );
 				scene = new THREE.Scene();
 				var PI2 = Math.PI * 2;
 				particles = new THREE.Object3D();
@@ -130,6 +138,7 @@
 				document.addEventListener( 'touchstart', onDocumentTouchStart, false );
 				document.addEventListener( 'touchmove', onDocumentTouchMove, false );
 				window.addEventListener( 'resize', onWindowResize, false );
+				controls = new THREE.TrackballControls( camera, container );				
 			}
 			function onWindowResize() {
 				windowHalfX = window.innerWidth / 2;
