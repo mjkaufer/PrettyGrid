@@ -121,21 +121,47 @@
 
 			// }
 
-			function moveTo(p, ve, max){//moves particle p towards vector3 v by max units
+			// function moveTo(p, ve, max){//moves particle p towards vector3 v by max units
 
-				var scaleThing = parseInt(p.uuid.split("-")[0].substring(0,2), 16) * 20;//a way of implementing a dynamic switch from positive to negative because math hates me
-				var scaleThing2 = parseInt(p.uuid.split("-")[1].substring(0,2), 16) * 20;
+			// 	var scaleThing = parseInt(p.uuid.split("-")[0].substring(0,2), 16) * 20;//a way of implementing a dynamic switch from positive to negative because math hates me
+			// 	var scaleThing2 = parseInt(p.uuid.split("-")[1].substring(0,2), 16) * 20;
 
-				var v = ve.clone().sub(p.clone().position);
+			// 	var v = ve.clone().sub(p.clone().position);
 
-				v.multiplyScalar(max / v.distanceTo(zeroVector));
-				var sign = count % scaleThing < scaleThing / 2.0 ? -1 : 1;
-				v.multiplyScalar(sign);
+			// 	v.multiplyScalar(max / v.distanceTo(zeroVector));
+			// 	var sign = count % scaleThing < scaleThing / 2.0 ? -1 : 1;
+			// 	v.multiplyScalar(sign);
 
-				window.last = v;
-				p.position.add(v);//now p has moved!
+			// 	window.last = v;
+			// 	p.position.add(v);//now p has moved!
 
-			}			
+			// }			//OLD CALCULATION BASED ONE
+
+			function move(p){//moves particle p towards vector3 v by max units
+				var uuid = p.uuid.split("-");
+				var science = new Array();//should end up having 16 entries
+				for(var x = 0; x < uuid.length; x++){
+					for(var y = 0; y < uuid[x].length; y+=2){
+						var n = parseInt(uuid[x].substring(y, y+2));
+						if(n < 20)
+							n = 256-n;
+						if(!isNaN(n))
+							science.push(n);
+					}
+				}
+
+				var third = parseInt(science.length / 3);
+
+				var rv = new THREE.Vector3();
+				for(var f in c){
+					var start = f * third;
+					var bonus = science[start+1] % 2 == 0 ? Math.PI / 2 : 0;
+					rv[c[f]] = Math.min(science[start], science[start + 1], 50) * Math.sin((count + science[start + 1]) / science[start + 2] + bonus);
+				}
+
+				p.position = rv;
+
+			}					
 
 			// function vectorToColor(v, m){//v is vector, m is what we'll mod/divide by
 
@@ -258,10 +284,11 @@
 
 				for(var x = 0; x < particles.children.length; x++){//now takes the 2 farthest points and the one nearest, averages positions, and moves towards there
 					var p = particles.children[x];
-					var neighbors = nFMixParticles(p, vertCopy, 2, 0)
-					var moveTowards = avgPosition(neighbors);//average position of p's neighbors
+					// var neighbors = nFMixParticles(p, vertCopy, 2, 0)
+					// var moveTowards = avgPosition(neighbors);//average position of p's neighbors
 
-					moveTo(p, moveTowards, moveDist);
+					// moveTo(p, moveTowards, moveDist);
+					move(p);
 					p.material.color = vectorToColor(p.position, colThresh);
 				}					
 
@@ -276,8 +303,7 @@
 						tempGeo.vertices.push(neighbors[y].position);
 						var nmat = lineMat.clone();
 						nmat.color = vectorToColor(avgPos(p.position, neighbors[y].position), colThresh);
-						var line = new THREE.Line(tempGeo, nmat);
-						lines.add(line);
+						lines.add(new THREE.Line(tempGeo, nmat));
 					}		
 				}
 		
